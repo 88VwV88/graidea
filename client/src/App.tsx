@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner'; 
 import Layout from './components/dashboard/Layout';
 import Dashboard from './components/dashboard/Dashboard';
+import AddTeacher from './components/dashboard/AddTeacher';
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -35,6 +36,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <Dashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/teachers/add"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AddTeacher />
             </Layout>
           </ProtectedRoute>
         }
