@@ -26,7 +26,6 @@ router.post(
 router.post(
   "/login",
   validateLogin,
-  authorize(["admin"]),
   userController.login
 );
 

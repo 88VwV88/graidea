@@ -1,4 +1,4 @@
-import { Calendar, Home, Inbox, Search, Settings, ChevronUp, User2 } from "lucide-react"
+import { Calendar, Home, Inbox, Search, ChevronUp, User2, ChevronDown, UserPlus, Users, BookOpen, Plus } from "lucide-react"
 import {
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -11,14 +11,23 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
+// SidebarGroupLabel,
   SidebarFooter,
   SidebarMenu,
   SidebarHeader,
   SidebarTrigger,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "../ui/sidebar"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../ui/collapsible"
+import { useAuth } from "../../contexts/AuthContext"
 
 // Menu items.
 const items = [
@@ -28,28 +37,46 @@ const items = [
     icon: Home,
   },
   {
-    title: "Inbox",
-    url: "/dashboard/create",
-    icon: Inbox,
-  },
-  {
-    title: "Calendar",
+    title: "Students",
     url: "#",
     icon: Calendar,
   },
+]
+
+// Teachers submenu items
+const teachersSubItems = [
   {
-    title: "Search",
-    url: "#",
-    icon: Search,
+    title: "Add Teachers",
+    url: "/dashboard/teachers/add",
+    icon: UserPlus,
   },
   {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
+    title: "Teachers List",
+    url: "/dashboard/teachers/list",
+    icon: Users,
+  },
+]
+
+// Courses submenu items
+const coursesSubItems = [
+  {
+    title: "Add Course",
+    url: "/dashboard/courses/add",
+    icon: Plus,
+  },
+  {
+    title: "Course List",
+    url: "/dashboard/courses/list",
+    icon: BookOpen,
   },
 ]
 
 export function AppSidebar() {
+  const { user,logout } = useAuth();
+ 
+  const handleLogout = () => {
+    logout();
+  };
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -59,7 +86,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup >
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          {/* <SidebarGroupLabel>Application</SidebarGroupLabel> */}
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -72,6 +99,60 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              
+              {/* Teachers Collapsible Menu */}
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton>
+                      <Inbox />
+                      <span>Teachers</span>
+                      <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {teachersSubItems.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton asChild>
+                            <a href={subItem.url}>
+                              <subItem.icon />
+                              <span>{subItem.title}</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
+              {/* Courses Collapsible Menu */}
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton>
+                      <Search />
+                      <span>Courses</span>
+                      <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {coursesSubItems.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton asChild>
+                            <a href={subItem.url}>
+                              <subItem.icon />
+                              <span>{subItem.title}</span>
+                            </a>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -82,7 +163,7 @@ export function AppSidebar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton>
-                  <User2 /> Username
+                  <User2 /> {user?.name}
                   <ChevronUp className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
@@ -97,7 +178,7 @@ export function AppSidebar() {
                   <span>Billing</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <span>Sign out</span>
+                  <span onClick={handleLogout}>Sign out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
