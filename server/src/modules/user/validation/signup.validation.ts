@@ -6,7 +6,7 @@ export const signupSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(6).required(),
   phone: Joi.string().optional(),
-  roles: Joi.array().items(Joi.string().valid('admin', 'user')).default(['user']),
+  roles: Joi.array().items(Joi.string().valid('admin', 'student', 'teacher')).default(['student']),
 })
 
 export const validateSignup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

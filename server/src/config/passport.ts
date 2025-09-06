@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import userModel from "../modules/userModel";
+import { User } from "../modules/user/models";
 
 passport.use(
   new GoogleStrategy(
@@ -11,10 +11,10 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        let user = await userModel.findOne({ googleId: profile.id });
+        let user = await User.findOne({ googleId: profile.id });
 
         if (!user) {
-          user = await userModel.create({
+          user = await User.create({
             googleId: profile.id,
             name: profile.displayName,
             email: profile.emails?.[0].value,
@@ -36,7 +36,7 @@ passport.serializeUser((user: any, done) => {
 
 passport.deserializeUser(async (id: string, done) => {
   try {
-    const user = await userModel.findById(id);
+    const user = await User.findById(id);
     done(null, user);
   } catch (err) {
     done(err, null);
