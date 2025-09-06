@@ -35,6 +35,7 @@ interface IStudent extends IUser {
   experience?: string
   education?: string
   availability?: 'available' | 'busy' | 'looking for opportunities'
+  courses?: mongoose.Types.ObjectId[]
 }
 
 // Social media links schema
@@ -82,7 +83,11 @@ const studentSchema: Schema = new Schema(
       type: String,
       enum: ['available', 'busy', 'looking for opportunities'],
       default: 'available'
-    }
+    },
+    courses: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Course'
+    }]
   },
   {
     timestamps: true,
