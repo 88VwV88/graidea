@@ -51,13 +51,12 @@ import { useAuth } from "../../contexts/AuthContext"
       title: "Dashboard",
       url: "/dashboard",
       icon: Home,
-      description: "Overview and analytics"
+
     },
     {
       title: "Students",
       url: "/dashboard/students",
       icon: GraduationCap,
-      description: "Student management"
     },
   ]
 
