@@ -6,10 +6,25 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner'; 
-import Layout from './components/dashboard/Layout';
-import Dashboard from './components/dashboard/Dashboard';
+import AdminLayout from './components/admin/AdminLayout';
+import AdminDashboard from './components/admin/AdminDashboard';
+import TeacherLayout from './components/teacher/TeacherLayout';
+import TeacherDashboard from './components/teacher/TeacherDashboard';
+import LandingPage from './components/landing/LandingPage';
+import MyCourses from './components/MyCourses';
+import Wishlist from './components/Wishlist';
 const AppRoutes: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  const getDashboardRoute = () => {
+    if (user?.roles?.includes('admin')) {
+      return '/admin-dashboard';
+    } else if (user?.roles?.includes('teacher')) {
+      return '/teacher-dashboard';
+    } else {
+      return '/my-courses';
+    }
+  };
 
   if (isLoading) {
     return (
@@ -23,25 +38,51 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+        element={isAuthenticated ? <Navigate to={getDashboardRoute()} replace /> : <Login />}
       />
       <Route
         path="/signup"
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Signup />}
+        element={isAuthenticated ? <Navigate to={getDashboardRoute()} replace /> : <Signup />}
       />
       <Route
-        path="/dashboard"
+        path="/admin-dashboard"
         element={
           <ProtectedRoute>
-            <Layout>
-              <Dashboard />
-            </Layout>
+            <AdminLayout>
+              <AdminDashboard />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher-dashboard"
+        element={
+          <ProtectedRoute>
+            <TeacherLayout>
+              <TeacherDashboard />
+            </TeacherLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-courses"
+        element={
+          <ProtectedRoute>
+            <MyCourses />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/wishlist"
+        element={
+          <ProtectedRoute>
+            <Wishlist />
           </ProtectedRoute>
         }
       />
       <Route
         path="/"
-        element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+        element={<LandingPage />}
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

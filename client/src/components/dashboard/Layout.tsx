@@ -1,7 +1,4 @@
-import { AppSidebar } from "./Sidebar"
-import Header from "./Header"
-import { SidebarProvider } from "../ui/sidebar"
-import { SidebarInset } from "../ui/sidebar"
+import AdminNavbar from "./AdminNavbar"
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,15 +6,12 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <Header />
-        <main className="flex-1 p-6">
-          {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="min-h-screen bg-gray-50">
+      <AdminNavbar />
+      <main className="flex-1">
+        {children}
+      </main>
+    </div>
   )
 }
 
