@@ -1,14 +1,7 @@
-import "dotenv/config";
-import { app } from "./app.ts";
+import app from './app'
 
-const PORT = process.env.PORT!;
-const HOST = process.env.HOST!;
+const PORT: number = Number(process.env.PORT || 8000)
 
-app.get("/", (req, res) => {
-  res.json({ message: "Hello, world!" });
-});
-
-app.listen(`http://${HOST}:${PORT}`, (error) => {
-  if (error) console.error("ERROR: %s", error);
-  console.log(`server started at http://${HOST}:${PORT}`);
-});
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`)
+})
