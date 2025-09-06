@@ -1,15 +1,50 @@
-import "dotenv/config";
-import cors from "cors";
-import morgan from "morgan";
-import helmet from "helmet";
-import express from "express";
+import dotenv from "dotenv";
+dotenv.config();
 
-export const app = express();
+import express, { Application, Request, Response } from "express";
+import cors from "cors";
+import helmet from "helmet";
+import connectDB from "./config/mongodb";
+import MODULE_ROUTES_MAPPINGS from "./modules";
+import { handleError } from "./utils/errors";
+import morgan from "morgan";
+
+const app: Application = express();
+
+// Error handling
+if (process.env.NODE_ENV !== "development") {
+  handleError();
+}
+
 app.use(
   cors({
-    origin: ["http://127.0.0.1:5173", "http://localhost:5173"],
+    origin: process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(",")
+      : [
+          "http://localhost:5173",
+          "http://localhost:3000",
+          "http://localhost:4000",
+        ],
+    optionsSuccessStatus: 200,
     credentials: true,
   })
 );
 app.use(helmet());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
+
+// DB initialization and connection
+connectDB();
+
+// Routers
+MODULE_ROUTES_MAPPINGS.forEach(({ prefix, router }) => {
+  app.use(prefix, router);
+});
+
+// Endpoints
+app.get("/", (req: Request, res: Response): void => {
+  res.send("working!");
+});
+
+export default app;
