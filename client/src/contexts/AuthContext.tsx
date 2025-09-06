@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { User, AuthContextType, LoginCredentials, SignupCredentials } from '../types/auth';
+import type { User, AuthContextType, LoginCredentials, SignupCredentials } from '../types/auth-types';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,6 +76,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('user');
   };
 
+  const handleUnauthorized = (): void => {
+    // This method can be called when a component receives a 401 error
+    // and wants to explicitly log out the user
+    logout();
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -83,6 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     signup,
     logout,
+    handleUnauthorized,
     isAuthenticated: !!user && !!token,
   };
 

@@ -243,52 +243,14 @@ export class TeacherController {
   // Get all teachers
   getAllTeachers = async (req: Request, res: Response): Promise<void> => {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        skills,
-        minExperience,
-        maxExperience,
-      } = req.query;
-
-      const query: any = {};
-
-      if (skills) {
-        query.skills = {
-          $in: Array.isArray(skills) ? skills : skills.toString().split(","),
-        };
-      }
-
-      if (minExperience || maxExperience) {
-        query.yearOfExperience = {};
-        if (minExperience)
-          query.yearOfExperience.$gte = parseInt(minExperience as string);
-        if (maxExperience)
-          query.yearOfExperience.$lte = parseInt(maxExperience as string);
-      }
-
-      const teachers = await Teacher.find(query)
+      const teachers = await Teacher.find()
         .populate("userId", "name email phone profileImageUrl")
-        .populate("coursesEnrolled", "title description")
-        .limit(Number(limit) * 1)
-        .skip((Number(page) - 1) * Number(limit))
         .sort({ createdAt: -1 });
-
-      const total = await Teacher.countDocuments(query);
 
       res.status(200).json({
         success: true,
         message: "Teachers retrieved successfully",
-        data: {
-          teachers,
-          pagination: {
-            currentPage: Number(page),
-            totalPages: Math.ceil(total / Number(limit)),
-            totalTeachers: total,
-            hasNext: Number(page) < Math.ceil(total / Number(limit)),
-            hasPrev: Number(page) > 1,
-          },
-        },
+        data: teachers,
       });
     } catch (error: any) {
       res.status(500).json({

@@ -3,6 +3,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+body {
+  font-family: "SF Pro Text", "SF Pro Display", Arial, sans-serif;
+}
+
+button{
+  cursor: pointer;
+}
 
 
 @layer base {

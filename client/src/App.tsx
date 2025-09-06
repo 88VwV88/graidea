@@ -9,6 +9,11 @@ import LoadingSpinner from './components/LoadingSpinner';
 import Layout from './components/dashboard/Layout';
 import Dashboard from './components/dashboard/Dashboard';
 import AddTeacher from './components/dashboard/AddTeacher';
+import TeachersList from './components/dashboard/TeachersList';
+import AddCourse from './components/dashboard/AddCourse';
+import CoursesList from './components/dashboard/CoursesList';
+import CourseMetaManager from './components/dashboard/CourseMetaManager';
+import CourseDetail from './components/dashboard/CourseDetail';
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -46,6 +51,56 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <AddTeacher />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/teachers/list"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <TeachersList />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/courses/add"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AddCourse />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/courses/list"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CoursesList />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/courses/meta"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CourseMetaManager />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/courses/:courseId"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CourseDetail />
             </Layout>
           </ProtectedRoute>
         }
