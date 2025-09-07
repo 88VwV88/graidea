@@ -1,13 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Search, ShoppingCart, User, Menu, X, BookOpen } from 'lucide-react';
+import { createNavigationAriaProps, generateAriaId, handleArrowKeyNavigation } from '../../lib/aria-utils';
 
 const Navbar: React.FC = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Generate IDs for ARIA relationships
+  const mobileMenuId = generateAriaId('mobile-menu');
+  const searchFormId = generateAriaId('search-form');
+  const userDropdownId = generateAriaId('user-dropdown');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,20 +33,87 @@ const Navbar: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+    setIsDropdownOpen(false);
   };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+    if (!isMobileMenuOpen) {
+      // Focus first menu item when opening
+      setTimeout(() => {
+        const firstMenuItem = mobileMenuRef.current?.querySelector('a, button') as HTMLElement;
+        firstMenuItem?.focus();
+      }, 100);
+    }
   };
 
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  // Handle keyboard navigation for mobile menu
+  const handleMobileMenuKeyDown = (e: React.KeyboardEvent) => {
+    if (!isMobileMenuOpen) return;
+    
+    const menuItems = Array.from(mobileMenuRef.current?.querySelectorAll('a, button') || []) as HTMLElement[];
+    
+    if (e.key === 'Escape') {
+      setIsMobileMenuOpen(false);
+      const menuButton = document.querySelector('[aria-controls="' + mobileMenuId + '"]') as HTMLElement;
+      menuButton?.focus();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const newIndex = handleArrowKeyNavigation(e.nativeEvent, menuItems, focusedIndex, 'vertical');
+      setFocusedIndex(newIndex);
+    }
+  };
+
+  // Handle keyboard navigation for dropdown
+  const handleDropdownKeyDown = (e: React.KeyboardEvent) => {
+    if (!isDropdownOpen) return;
+    
+    const dropdownItems = Array.from(dropdownRef.current?.querySelectorAll('a, button') || []) as HTMLElement[];
+    
+    if (e.key === 'Escape') {
+      setIsDropdownOpen(false);
+      const dropdownButton = document.querySelector('[aria-controls="' + userDropdownId + '"]') as HTMLElement;
+      dropdownButton?.focus();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const newIndex = handleArrowKeyNavigation(e.nativeEvent, dropdownItems, focusedIndex, 'vertical');
+      setFocusedIndex(newIndex);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isDropdownOpen]);
+
   return (
-    <nav className="bg-white shadow-lg sticky top-0 z-50">
+    <nav 
+      className="bg-white shadow-lg sticky top-0 z-50"
+      {...createNavigationAriaProps('Main navigation')}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          <Link 
+            to="/" 
+            className="flex items-center space-x-2"
+            aria-label="Graidea - Go to homepage"
+          >
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
+              <BookOpen className="w-5 h-5 text-white" aria-hidden="true" />
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Graidea
@@ -43,30 +122,47 @@ const Navbar: React.FC = () => {
 
           {/* Desktop Search Bar */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <form onSubmit={handleSearch} className="w-full">
+            <form 
+              onSubmit={handleSearch} 
+              className="w-full"
+              id={searchFormId}
+              role="search"
+              aria-label="Search courses"
+            >
               <div className="relative">
+                <label htmlFor="desktop-search" className="sr-only">
+                  Search courses
+                </label>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
+                  <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 </div>
                 <input
+                  ref={searchInputRef}
+                  id="desktop-search"
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search courses..."
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  aria-describedby="search-help"
                 />
+                <div id="search-help" className="sr-only">
+                  Press Enter to search for courses
+                </div>
               </div>
             </form>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden md:flex items-center space-x-6" role="menubar">
             {/* My Learning */}
             <Link
               to="/my-courses"
               className="flex items-center space-x-1 text-gray-700 hover:text-blue-600 transition-colors duration-200"
+              role="menuitem"
+              aria-label="View my learning courses"
             >
-              <BookOpen className="w-5 h-5" />
+              <BookOpen className="w-5 h-5" aria-hidden="true" />
               <span className="font-medium">My Learning</span>
             </Link>
 
@@ -74,9 +170,14 @@ const Navbar: React.FC = () => {
             <Link
               to="/wishlist"
               className="relative text-gray-700 hover:text-blue-600 transition-colors duration-200"
+              role="menuitem"
+              aria-label="View wishlist (0 items)"
             >
-              <ShoppingCart className="w-6 h-6" />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              <ShoppingCart className="w-6 h-6" aria-hidden="true" />
+              <span 
+                className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
+                aria-label="0 items in wishlist"
+              >
                 0
               </span>
             </Link>
@@ -86,31 +187,53 @@ const Navbar: React.FC = () => {
               <div className="flex items-center space-x-4">
                 {/* Profile Dropdown */}
                 <div className="relative group">
-                  <button className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">
+                  <button 
+                    className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors duration-200"
+                    onClick={toggleDropdown}
+                    aria-expanded={isDropdownOpen}
+                    aria-controls={userDropdownId}
+                    aria-haspopup="menu"
+                    aria-label={`User menu for ${user?.name}`}
+                  >
                     <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-white" />
+                      <User className="w-4 h-4 text-white" aria-hidden="true" />
                     </div>
                     <span className="font-medium hidden lg:block">{user?.name}</span>
                   </button>
                   
                   {/* Dropdown Menu */}
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                  <div 
+                    ref={dropdownRef}
+                    id={userDropdownId}
+                    className={`absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 transition-all duration-200 ${
+                      isDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+                    }`}
+                    role="menu"
+                    aria-label="User account menu"
+                    onKeyDown={handleDropdownKeyDown}
+                  >
                     <div className="py-1">
                       <Link
                         to="/dashboard"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        role="menuitem"
+                        onClick={() => setIsDropdownOpen(false)}
                       >
                         Dashboard
                       </Link>
                       <Link
                         to="/profile"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        role="menuitem"
+                        onClick={() => setIsDropdownOpen(false)}
                       >
                         Profile
                       </Link>
                       <Link
                         to="/my-courses"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        role="menuitem"
+                        onClick={() => setIsDropdownOpen(false)}
                       >
                         My Courses
                       </Link>
@@ -118,6 +241,7 @@ const Navbar: React.FC = () => {
                       <button
                         onClick={handleLogout}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        role="menuitem"
                       >
                         Sign Out
                       </button>
@@ -126,16 +250,18 @@ const Navbar: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4" role="menubar">
                 <Link
                   to="/login"
                   className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
+                  role="menuitem"
                 >
                   Login
                 </Link>
                 <Link
                   to="/signup"
                   className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                  role="menuitem"
                 >
                   Sign Up
                 </Link>
@@ -148,11 +274,14 @@ const Navbar: React.FC = () => {
             <button
               onClick={toggleMobileMenu}
               className="text-gray-700 hover:text-blue-600 focus:outline-none focus:text-blue-600"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls={mobileMenuId}
+              aria-label="Toggle mobile menu"
             >
               {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
+                <X className="h-6 w-6" aria-hidden="true" />
               ) : (
-                <Menu className="h-6 w-6" />
+                <Menu className="h-6 w-6" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -160,43 +289,64 @@ const Navbar: React.FC = () => {
 
         {/* Mobile Search Bar */}
         <div className="md:hidden pb-4">
-          <form onSubmit={handleSearch}>
+          <form onSubmit={handleSearch} role="search" aria-label="Search courses">
             <div className="relative">
+              <label htmlFor="mobile-search" className="sr-only">
+                Search courses
+              </label>
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+                <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
               </div>
               <input
+                id="mobile-search"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search courses..."
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                aria-describedby="mobile-search-help"
               />
+              <div id="mobile-search-help" className="sr-only">
+                Press Enter to search for courses
+              </div>
             </div>
           </form>
         </div>
 
         {/* Mobile Navigation Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden">
+          <div 
+            className="md:hidden"
+            ref={mobileMenuRef}
+            id={mobileMenuId}
+            role="menu"
+            aria-label="Mobile navigation menu"
+            onKeyDown={handleMobileMenuKeyDown}
+          >
             <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
               <Link
                 to="/my-courses"
                 className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-base font-medium"
+                role="menuitem"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <BookOpen className="w-5 h-5" />
+                <BookOpen className="w-5 h-5" aria-hidden="true" />
                 <span>My Learning</span>
               </Link>
 
               <Link
                 to="/wishlist"
                 className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-base font-medium"
+                role="menuitem"
                 onClick={() => setIsMobileMenuOpen(false)}
+                aria-label="View wishlist (0 items)"
               >
-                <ShoppingCart className="w-5 h-5" />
+                <ShoppingCart className="w-5 h-5" aria-hidden="true" />
                 <span>Wishlist</span>
-                <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-auto">
+                <span 
+                  className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-auto"
+                  aria-label="0 items in wishlist"
+                >
                   0
                 </span>
               </Link>
@@ -206,17 +356,19 @@ const Navbar: React.FC = () => {
                   <Link
                     to="/dashboard"
                     className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-base font-medium"
+                    role="menuitem"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <User className="w-5 h-5" />
+                    <User className="w-5 h-5" aria-hidden="true" />
                     <span>Dashboard</span>
                   </Link>
                   <Link
                     to="/profile"
                     className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-base font-medium"
+                    role="menuitem"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <User className="w-5 h-5" />
+                    <User className="w-5 h-5" aria-hidden="true" />
                     <span>Profile</span>
                   </Link>
                   <button
@@ -225,8 +377,9 @@ const Navbar: React.FC = () => {
                       setIsMobileMenuOpen(false);
                     }}
                     className="flex items-center space-x-2 text-gray-700 hover:text-red-600 px-3 py-2 rounded-md text-base font-medium w-full text-left"
+                    role="menuitem"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5" aria-hidden="true" />
                     <span>Sign Out</span>
                   </button>
                 </>
@@ -235,6 +388,7 @@ const Navbar: React.FC = () => {
                   <Link
                     to="/login"
                     className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-base font-medium"
+                    role="menuitem"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Login
@@ -242,6 +396,7 @@ const Navbar: React.FC = () => {
                   <Link
                     to="/signup"
                     className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-2 rounded-md text-base font-medium text-center mx-3"
+                    role="menuitem"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Sign Up

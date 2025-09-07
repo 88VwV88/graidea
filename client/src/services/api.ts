@@ -111,6 +111,40 @@ export const teachersAPI = {
   },
 };
 
+export const coursesAPI = {
+  // Get all courses
+  getAllCourses: async () => {
+    try {
+      const response = await api.get('/courses');
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Failed to fetch courses. Please try again.');
+      }
+    }
+  },
+
+  // Get course by ID
+  getCourseById: async (courseId: string) => {
+    try {
+      const response = await api.get(`/courses/${courseId}`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Failed to fetch course details. Please try again.');
+      }
+    }
+  },
+};
+
 export const courseMetaAPI = {
   // Create course meta
   createCourseMeta: async (courseMetaData: any) => {

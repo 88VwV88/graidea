@@ -21,7 +21,6 @@ router.post(
 // Get all courses with pagination and filtering (protected route)
 router.get(
   '/',
-  authenticate,
   courseController.getAllCourses
 )
 

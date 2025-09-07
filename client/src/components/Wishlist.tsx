@@ -1,63 +1,98 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingCart, Star, Clock, Users, Trash2 } from 'lucide-react';
 import StudentNavbar from './StudentNavbar';
+import { coursesAPI, handleApiError } from '../services/api';
+import LoadingSpinner from './LoadingSpinner';
+
+interface Course {
+  _id: string;
+  title: string;
+  description: string;
+  imageLink?: string;
+  price: number;
+  assignedTeachers?: Array<{
+    userId?: {
+      name: string;
+    };
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const Wishlist: React.FC = () => {
-  // Mock data for wishlist items
-  const wishlistItems = [
-    {
-      id: 1,
-      title: "Complete Web Development Bootcamp",
-      instructor: "Sarah Johnson",
-      rating: 4.9,
-      reviews: 1234,
-      students: 2847,
-      duration: "40 hours",
-      price: 2999,
-      originalPrice: 5999,
-      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=250&fit=crop",
-      category: "Web Development",
-      level: "Beginner"
-    },
-    {
-      id: 2,
-      title: "Advanced React & Node.js Masterclass",
-      instructor: "Mike Chen",
-      rating: 4.8,
-      reviews: 856,
-      students: 1923,
-      duration: "35 hours",
-      price: 4499,
-      originalPrice: 8999,
-      image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=250&fit=crop",
-      category: "Full Stack",
-      level: "Intermediate"
-    },
-    {
-      id: 3,
-      title: "UI/UX Design Fundamentals",
-      instructor: "Alex Thompson",
-      rating: 4.7,
-      reviews: 678,
-      students: 1456,
-      duration: "25 hours",
-      price: 2399,
-      originalPrice: 4499,
-      image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=250&fit=crop",
-      category: "Design",
-      level: "Beginner"
-    }
-  ];
+  const [wishlistItems, setWishlistItems] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleRemoveFromWishlist = (courseId: number) => {
+  useEffect(() => {
+    const fetchWishlistCourses = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await coursesAPI.getAllCourses();
+        if (response.success) {
+          // For now, we'll show all courses as wishlist items
+          // In a real implementation, you'd have a separate wishlist API
+          setWishlistItems(response.data || []);
+        } else {
+          setError('Failed to fetch wishlist courses');
+        }
+      } catch (err) {
+        const errorMessage = handleApiError(err, setError);
+        console.error('Error fetching wishlist courses:', errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWishlistCourses();
+  }, []);
+
+  const handleRemoveFromWishlist = (courseId: string) => {
     // TODO: Implement remove from wishlist functionality
     console.log('Remove from wishlist:', courseId);
+    // For now, just remove from local state
+    setWishlistItems(prev => prev.filter(item => item._id !== courseId));
   };
 
-  const handleAddToCart = (courseId: number) => {
+  const handleAddToCart = (courseId: string) => {
     // TODO: Implement add to cart functionality
     console.log('Add to cart:', courseId);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <StudentNavbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-96">
+            <LoadingSpinner size="lg" text="Loading wishlist..." />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <StudentNavbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <p className="text-red-600 text-lg mb-4">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -72,22 +107,22 @@ const Wishlist: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {wishlistItems.map((course) => (
               <div
-                key={course.id}
+                key={course._id}
                 className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden"
               >
                 <div className="relative">
-                  <img
-                    src={course.image}
-                    alt={course.title}
-                    className="w-full h-48 object-cover"
-                  />
+                    <img
+                      src={course.imageLink || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=250&fit=crop"}
+                      alt={course.title || 'Course image'}
+                      className="w-full h-48 object-cover"
+                    />
                   <div className="absolute top-4 left-4">
                     <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      {course.category}
+                      Course
                     </span>
                   </div>
                   <button
-                    onClick={() => handleRemoveFromWishlist(course.id)}
+                    onClick={() => handleRemoveFromWishlist(course._id)}
                     className="absolute top-4 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-50 transition-colors duration-200"
                   >
                     <Heart className="w-5 h-5 text-red-500 fill-current" />
@@ -96,61 +131,58 @@ const Wishlist: React.FC = () => {
 
                 <div className="p-6">
                   <div className="mb-3">
-                    <span className="text-sm text-gray-500">{course.level}</span>
+                    <span className="text-sm text-gray-500">All Levels</span>
                   </div>
                   
                   <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {course.title}
+                    {course.title || 'Untitled Course'}
                   </h3>
                   
                   <p className="text-sm text-gray-600 mb-4">
-                    by {course.instructor}
+                    by {course.assignedTeachers?.[0]?.userId?.name || 'Expert Instructor'}
                   </p>
 
                   <div className="flex items-center mb-4">
                     <div className="flex items-center">
                       <Star className="w-4 h-4 text-yellow-400 fill-current" />
                       <span className="text-sm font-medium text-gray-900 ml-1">
-                        {course.rating}
+                        4.5
                       </span>
                     </div>
                     <span className="text-sm text-gray-500 ml-2">
-                      ({course.reviews} reviews)
+                      (New Course)
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                     <div className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
-                      {course.duration}
+                      Self-paced
                     </div>
                     <div className="flex items-center">
                       <Users className="w-4 h-4 mr-1" />
-                      {course.students.toLocaleString()}
+                      Enroll Now
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
                       <span className="text-2xl font-bold text-green-600">
-                        ₹{course.price.toLocaleString()}
-                      </span>
-                      <span className="text-lg text-gray-400 line-through">
-                        ₹{course.originalPrice.toLocaleString()}
+                        ₹{(course.price || 0).toLocaleString()}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => handleAddToCart(course.id)}
+                      onClick={() => handleAddToCart(course._id)}
                       className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center justify-center"
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
                       Add to Cart
                     </button>
                     <button
-                      onClick={() => handleRemoveFromWishlist(course.id)}
+                      onClick={() => handleRemoveFromWishlist(course._id)}
                       className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                     >
                       <Trash2 className="w-4 h-4" />

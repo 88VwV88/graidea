@@ -129,7 +129,7 @@ const FeaturesSection: React.FC = () => {
           {features.map((feature, index) => (
             <motion.div
               key={index}
-              className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100"
+              className="group relative rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100"
               variants={cardVariants}
               whileHover={{ 
                 y: -10,
@@ -137,14 +137,11 @@ const FeaturesSection: React.FC = () => {
                 transition: { duration: 0.3 }
               }}
             >
-              {/* Gradient Background */}
-              <motion.div 
-                className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 rounded-2xl`}
-                whileHover={{ opacity: 0.05 }}
-                transition={{ duration: 0.3 }}
-              />
-              
-              <CardSpotlight className="relative" color='#FEEBE7'>
+              <CardSpotlight
+                className="rounded-2xl h-full"
+                color={`linear-gradient(135deg, ${feature.color.replace('from-', '').replace('to-', '').replace('-500', '-400')})`}
+                radius={300}
+              >
                 <motion.div 
                   className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center mb-6`}
                   whileHover={{ 

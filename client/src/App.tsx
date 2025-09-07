@@ -2,6 +2,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AriaProvider } from './contexts/AriaContext';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -9,6 +10,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import Dashboard from './components/dashboard/Dashboard';
 import LandingPage from './components/landing/LandingPage';
 import MyCourses from './components/MyCourses';
+import CourseDetailPage from './components/CourseDetailPage';
 import Wishlist from './components/Wishlist';
 import Layout from './components/dashboard/Layout';
 import AddTeacher from './components/dashboard/AddTeacher';
@@ -63,6 +65,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <MyCourses />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/course/:courseId"
+        element={
+          <ProtectedRoute>
+            <CourseDetailPage />
           </ProtectedRoute>
         }
       />
@@ -146,11 +156,13 @@ const AppRoutes: React.FC = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
-          <AppRoutes />
-        </div>
-      </Router>
+      <AriaProvider>
+        <Router>
+          <div className="App">
+            <AppRoutes />
+          </div>
+        </Router>
+      </AriaProvider>
     </AuthProvider>
   );
 }
