@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AriaProvider } from './contexts/AriaContext';
+import Navbar from './components/Navbar';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -19,6 +20,8 @@ import AddCourse from './components/dashboard/AddCourse';
 import CoursesList from './components/dashboard/CoursesList';
 import CourseMetaManager from './components/dashboard/CourseMetaManager';
 import CourseDetail from './components/dashboard/CourseDetail';
+import AboutUs from './components/about_contact/About';
+import ContactPage from './components/about_contact/Contact';
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
@@ -148,6 +151,8 @@ const AppRoutes: React.FC = () => {
         path="/"
         element={<LandingPage />}
       />
+      <Route path='/about' element={<AboutUs/>} />
+      <Route path='/contact' element={<ContactPage/>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -156,13 +161,12 @@ const AppRoutes: React.FC = () => {
 function App() {
   return (
     <AuthProvider>
-      <AriaProvider>
-        <Router>
-          <div className="App">
-            <AppRoutes />
-          </div>
-        </Router>
-      </AriaProvider>
+      <Router>
+        <div className="App">
+          <Navbar/>
+          <AppRoutes />
+        </div>
+      </Router>
     </AuthProvider>
   );
 }
