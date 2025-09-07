@@ -1,85 +1,205 @@
 import { Request, Response } from 'express'
-import { CourseService } from '../services'
-import { ICourse } from '../types'
+import { Course } from '../models'
+import mongoose from 'mongoose'
 
 export class CourseController {
-  private courseService: CourseService
-
-  constructor() {
-    this.courseService = new CourseService()
-  }
-
-  async createCourse(req: Request, res: Response): Promise<void> {
+  // Create a new course
+  createCourse = async (req: Request, res: Response): Promise<void> => {
     try {
-      const courseData: Partial<ICourse> = req.body
-      const course = await this.courseService.createCourse(courseData)
+      const { title, description, price } = req.body
       
+      // Debug: Log the request body to understand the structure
+      console.log('Request body:', req.body)
+      console.log('assignedTeachers type:', typeof req.body.assignedTeachers)
+      console.log('assignedTeachers value:', req.body.assignedTeachers)
+      
+      // Handle assignedTeachers array from FormData
+      let assignedTeachers: string[] = []
+      if (req.body.assignedTeachers) {
+        // If it's already an array, use it directly
+        if (Array.isArray(req.body.assignedTeachers)) {
+          assignedTeachers = req.body.assignedTeachers
+        } else {
+          // If it's an object with indexed keys, convert to array
+          assignedTeachers = Object.values(req.body.assignedTeachers) as string[]
+        }
+      }
+      
+      console.log('Processed assignedTeachers:', assignedTeachers)
+
+      // Get image URL from uploaded file
+      let imageLink: string | undefined;
+      if (req.file) {
+        imageLink = (req.file as any).location; // S3 file location
+      }
+
+      // Validate assignedTeachers if provided
+      if (assignedTeachers && assignedTeachers.length > 0) {
+        const validTeacherIds = assignedTeachers.filter((id: string) => 
+          mongoose.Types.ObjectId.isValid(id)
+        )
+        
+        if (validTeacherIds.length !== assignedTeachers.length) {
+          res.status(400).json({
+            success: false,
+            message: 'Invalid teacher IDs provided',
+          })
+          return
+        }
+      }
+
+      const course = new Course({
+        title,
+        description,
+        imageLink,
+        price: Number(price),
+        assignedTeachers: assignedTeachers || [],
+      })
+
+      const savedCourse = await course.save()
+
+      // Populate assigned teachers for response
+      const populatedCourse = await Course.findById(savedCourse._id)
+        .populate('assignedTeachers', 'userId yearOfExperience degreeName skills salary')
+        .populate({
+          path: 'assignedTeachers',
+          populate: {
+            path: 'userId',
+            select: 'name email phone profileImageUrl'
+          }
+        })
+
       res.status(201).json({
         success: true,
         message: 'Course created successfully',
-        data: course
+        data: populatedCourse,
       })
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message || 'Failed to create course'
+        message: error.message || 'Failed to create course',
       })
     }
   }
 
-  async getCourseById(req: Request, res: Response): Promise<void> {
+  // Get all courses
+  getAllCourses = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const courses = await Course.find()
+        .populate('assignedTeachers', 'userId yearOfExperience degreeName skills salary')
+        .populate({
+          path: 'assignedTeachers',
+          populate: {
+            path: 'userId',
+            select: 'name email phone profileImageUrl'
+          }
+        })
+        .sort({ createdAt: -1 })
+
+      res.status(200).json({
+        success: true,
+        message: 'Courses retrieved successfully',
+        data: courses,
+      })
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve courses',
+      })
+    }
+  }
+
+  // Get course by ID
+  getCourseById = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params
-      const course = await this.courseService.getCourseById(id)
-      
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid course ID',
+        })
+        return
+      }
+
+      const course = await Course.findById(id)
+        .populate('assignedTeachers', 'userId yearOfExperience degreeName skills salary')
+        .populate({
+          path: 'assignedTeachers',
+          populate: {
+            path: 'userId',
+            select: 'name email phone profileImageUrl'
+          }
+        })
+
       if (!course) {
         res.status(404).json({
           success: false,
-          message: 'Course not found'
+          message: 'Course not found',
         })
         return
       }
 
       res.status(200).json({
         success: true,
-        data: course
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to get course'
-      })
-    }
-  }
-
-  async getAllCourses(req: Request, res: Response): Promise<void> {
-    try {
-      const filters = req.query
-      const courses = await this.courseService.getAllCourses(filters)
-      
-      res.status(200).json({
-        success: true,
-        data: courses,
-        count: courses.length
+        message: 'Course retrieved successfully',
+        data: course,
       })
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message || 'Failed to get courses'
+        message: error.message || 'Failed to retrieve course',
       })
     }
   }
 
-  async updateCourse(req: Request, res: Response): Promise<void> {
+  // Update course
+  updateCourse = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params
-      const updateData: Partial<ICourse> = req.body
-      const course = await this.courseService.updateCourse(id, updateData)
-      
+      const updateData = req.body
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid course ID',
+        })
+        return
+      }
+
+      // Validate assignedTeachers if provided
+      if (updateData.assignedTeachers && updateData.assignedTeachers.length > 0) {
+        const validTeacherIds = updateData.assignedTeachers.filter((id: string) => 
+          mongoose.Types.ObjectId.isValid(id)
+        )
+        
+        if (validTeacherIds.length !== updateData.assignedTeachers.length) {
+          res.status(400).json({
+            success: false,
+            message: 'Invalid teacher IDs provided',
+          })
+          return
+        }
+      }
+
+      const course = await Course.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      )
+        .populate('assignedTeachers', 'userId yearOfExperience degreeName skills salary')
+        .populate({
+          path: 'assignedTeachers',
+          populate: {
+            path: 'userId',
+            select: 'name email phone profileImageUrl'
+          }
+        })
+
       if (!course) {
         res.status(404).json({
           success: false,
-          message: 'Course not found'
+          message: 'Course not found',
         })
         return
       }
@@ -87,241 +207,47 @@ export class CourseController {
       res.status(200).json({
         success: true,
         message: 'Course updated successfully',
-        data: course
+        data: course,
       })
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message || 'Failed to update course'
+        message: error.message || 'Failed to update course',
       })
     }
   }
 
-  async deleteCourse(req: Request, res: Response): Promise<void> {
+  // Delete course
+  deleteCourse = async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params
-      const course = await this.courseService.deleteCourse(id)
-      
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid course ID',
+        })
+        return
+      }
+
+      const course = await Course.findByIdAndDelete(id)
+
       if (!course) {
         res.status(404).json({
           success: false,
-          message: 'Course not found'
+          message: 'Course not found',
         })
         return
       }
 
       res.status(200).json({
         success: true,
-        message: 'Course deleted successfully'
+        message: 'Course deleted successfully',
       })
     } catch (error: any) {
-      res.status(400).json({
+      res.status(500).json({
         success: false,
-        message: error.message || 'Failed to delete course'
-      })
-    }
-  }
-
-  async getCoursesByInstructor(req: Request, res: Response): Promise<void> {
-    try {
-      const { instructorId } = req.params
-      const courses = await this.courseService.getCoursesByInstructor(instructorId)
-      
-      res.status(200).json({
-        success: true,
-        data: courses,
-        count: courses.length
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to get instructor courses'
-      })
-    }
-  }
-
-  async getCoursesByCategory(req: Request, res: Response): Promise<void> {
-    try {
-      const { category } = req.params
-      const courses = await this.courseService.getCoursesByCategory(category)
-      
-      res.status(200).json({
-        success: true,
-        data: courses,
-        count: courses.length
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to get courses by category'
-      })
-    }
-  }
-
-  async getCoursesByDifficulty(req: Request, res: Response): Promise<void> {
-    try {
-      const { difficulty } = req.params
-      const courses = await this.courseService.getCoursesByDifficulty(difficulty)
-      
-      res.status(200).json({
-        success: true,
-        data: courses,
-        count: courses.length
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to get courses by difficulty'
-      })
-    }
-  }
-
-  async searchCourses(req: Request, res: Response): Promise<void> {
-    try {
-      const { q } = req.query
-      const query = q as string
-      const courses = await this.courseService.searchCourses(query)
-      
-      res.status(200).json({
-        success: true,
-        data: courses,
-        count: courses.length
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to search courses'
-      })
-    }
-  }
-
-  async enrollStudent(req: Request, res: Response): Promise<void> {
-    try {
-      const { courseId, studentId } = req.params
-      const course = await this.courseService.enrollStudentInCourse(courseId, studentId)
-      
-      if (!course) {
-        res.status(404).json({
-          success: false,
-          message: 'Course not found'
-        })
-        return
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Student enrolled successfully',
-        data: course
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to enroll student'
-      })
-    }
-  }
-
-  async unenrollStudent(req: Request, res: Response): Promise<void> {
-    try {
-      const { courseId, studentId } = req.params
-      const course = await this.courseService.unenrollStudentFromCourse(courseId, studentId)
-      
-      if (!course) {
-        res.status(404).json({
-          success: false,
-          message: 'Course not found'
-        })
-        return
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Student unenrolled successfully',
-        data: course
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to unenroll student'
-      })
-    }
-  }
-
-  async rateCourse(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params
-      const { rating } = req.body
-      const course = await this.courseService.rateCourse(id, rating)
-      
-      if (!course) {
-        res.status(404).json({
-          success: false,
-          message: 'Course not found'
-        })
-        return
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Course rated successfully',
-        data: course
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to rate course'
-      })
-    }
-  }
-
-  async publishCourse(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params
-      const course = await this.courseService.publishCourse(id)
-      
-      if (!course) {
-        res.status(404).json({
-          success: false,
-          message: 'Course not found'
-        })
-        return
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Course published successfully',
-        data: course
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to publish course'
-      })
-    }
-  }
-
-  async archiveCourse(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params
-      const course = await this.courseService.archiveCourse(id)
-      
-      if (!course) {
-        res.status(404).json({
-          success: false,
-          message: 'Course not found'
-        })
-        return
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Course archived successfully',
-        data: course
-      })
-    } catch (error: any) {
-      res.status(400).json({
-        success: false,
-        message: error.message || 'Failed to archive course'
+        message: error.message || 'Failed to delete course',
       })
     }
   }

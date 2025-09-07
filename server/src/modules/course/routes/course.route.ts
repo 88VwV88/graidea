@@ -1,29 +1,51 @@
 import { Router } from 'express'
 import { CourseController } from '../controllers'
+import { authenticate, authorize } from '../../../middlewares'
+import { createS3UploadMiddleware } from '../../../middlewares/upload.middleware'
 
 const router = Router()
 const courseController = new CourseController()
 
-// Course CRUD routes
-router.post('/', courseController.createCourse.bind(courseController))
-router.get('/', courseController.getAllCourses.bind(courseController))
-router.get('/search', courseController.searchCourses.bind(courseController))
-router.get('/category/:category', courseController.getCoursesByCategory.bind(courseController))
-router.get('/difficulty/:difficulty', courseController.getCoursesByDifficulty.bind(courseController))
-router.get('/instructor/:instructorId', courseController.getCoursesByInstructor.bind(courseController))
-router.get('/:id', courseController.getCourseById.bind(courseController))
-router.put('/:id', courseController.updateCourse.bind(courseController))
-router.delete('/:id', courseController.deleteCourse.bind(courseController))
+// Create course (protected route - admin only)
+router.post(
+  '/',
+  authenticate,
+  authorize(['admin']),
+  createS3UploadMiddleware({
+    singleField: 'courseImage',
+    folder: 'course-images'
+  }),
+  courseController.createCourse
+)
 
-// Course management routes
-router.patch('/:id/publish', courseController.publishCourse.bind(courseController))
-router.patch('/:id/archive', courseController.archiveCourse.bind(courseController))
+// Get all courses with pagination and filtering (protected route)
+router.get(
+  '/',
+  authenticate,
+  courseController.getAllCourses
+)
 
-// Student enrollment routes
-router.post('/:courseId/enroll/:studentId', courseController.enrollStudent.bind(courseController))
-router.delete('/:courseId/unenroll/:studentId', courseController.unenrollStudent.bind(courseController))
+// Get course by ID (protected route)
+router.get(
+  '/:id',
+  authenticate,
+  courseController.getCourseById
+)
 
-// Course rating route
-router.post('/:id/rate', courseController.rateCourse.bind(courseController))
+// Update course (protected route - admin only)
+router.put(
+  '/:id',
+  authenticate,
+  authorize(['admin']),
+  courseController.updateCourse
+)
+
+// Delete course (protected route - admin only)
+router.delete(
+  '/:id',
+  authenticate,
+  authorize(['admin']),
+  courseController.deleteCourse
+)
 
 export default router

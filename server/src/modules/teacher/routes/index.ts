@@ -1,1 +1,1 @@
-export { default as teacherRoutes } from './teacher.route'
+export { default as TeacherRouter } from './teacher.route'
